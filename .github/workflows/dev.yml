@@ -85,6 +85,7 @@ jobs:
           timeout 120 bash -c \
             'until curl -sf -X POST http://localhost:4000/ \
                -H "Content-Type: application/json" \
+               -H "apollo-require-preflight: 1" \
                -d "{\"query\":\"{__typename}\"}" | grep -q "__typename"; \
              do sleep 4; done'
           echo "Backend ready."
@@ -167,6 +168,7 @@ jobs:
             sleep 20
             curl -sf -X POST http://localhost:3095/ \
               -H "Content-Type: application/json" \
+              -H "apollo-require-preflight: 1" \
               -d '{"query":"{__typename}"}' | grep -q '__typename' \
               && echo "✓ Backend dev (3095) OK" \
               || { echo "✗ Backend dev KO"; exit 1; }

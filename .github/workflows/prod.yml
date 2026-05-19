@@ -94,6 +94,7 @@ jobs:
             sleep 20
             curl -sf -X POST http://localhost:3098/ \
               -H "Content-Type: application/json" \
+              -H "apollo-require-preflight: 1" \
               -d '{"query":"{__typename}"}' | grep -q '__typename' \
               && echo "✓ Backend prod (3098) OK" \
               || { echo "✗ Backend prod KO"; exit 1; }
