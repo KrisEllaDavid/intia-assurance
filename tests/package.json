@@ -2,10 +2,10 @@
   "name": "intia-tests",
   "version": "1.0.0",
   "scripts": {
-    "test:unit":        "jest --testPathPattern=unit",
-    "test:integration": "jest --testPathPattern=integration",
+    "test:unit":        "jest --testPathPattern=unit --forceExit",
+    "test:integration": "jest --testPathPattern=integration --forceExit",
     "test:e2e":         "playwright test",
-    "test":             "jest"
+    "test":             "jest --forceExit"
   },
   "devDependencies": {
     "@apollo/server":      "^4.11.0",
