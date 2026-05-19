@@ -11,7 +11,11 @@ export default function LoginClient() {
 
   const [login, { loading }] = useMutation(LOGIN_CLIENT, {
     onCompleted: ({ loginClient }) => {
-      saveClientAuth(loginClient.token, loginClient.client);
+      const { client } = loginClient;
+      saveClientAuth(loginClient.token, {
+        ...client,
+        agenceId: client.agence.id,  // agenceId dérivé de agence.id (non exposé dans le schéma)
+      });
       navigate('/client/mes-assurances');
     },
     onError: (err) => setErrMsg(err.message),
