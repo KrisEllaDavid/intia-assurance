@@ -1,0 +1,176 @@
+name: Dev — Test & Deploy
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. TESTS UNITAIRES
+# ══════════════════════════════════════════════════════════════════════════════
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: tests
+
+      - name: Run unit tests
+        run: npm run test:unit
+        working-directory: tests
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. TESTS D'INTÉGRATION
+# ══════════════════════════════════════════════════════════════════════════════
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: tests
+
+      - name: Run integration tests
+        run: npm run test:integration
+        working-directory: tests
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. TESTS E2E (Docker stack complet)
+# ══════════════════════════════════════════════════════════════════════════════
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Créer le .env pour CI ──────────────────────────────────────────────
+      - name: Create .env
+        run: |
+          cat > .env <<EOF
+          POSTGRES_USER=${{ secrets.DEV_POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.DEV_POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.DEV_POSTGRES_DB }}
+          JWT_SECRET=${{ secrets.DEV_JWT_SECRET }}
+          FRONTEND_PORT=3000
+          BACKEND_PORT=4000
+          EOF
+
+      # ── Démarrer l'application ─────────────────────────────────────────────
+      - name: Build & start Docker stack
+        run: docker compose up -d --build
+
+      # ── Attendre que le backend soit prêt ─────────────────────────────────
+      - name: Wait for backend
+        run: |
+          echo "Waiting for backend (max 120s)..."
+          timeout 120 bash -c \
+            'until curl -sf -X POST http://localhost:4000/ \
+               -H "Content-Type: application/json" \
+               -d "{\"query\":\"{__typename}\"}" | grep -q "__typename"; \
+             do sleep 4; done'
+          echo "Backend ready."
+
+      # ── Attendre que le frontend soit prêt ────────────────────────────────
+      - name: Wait for frontend
+        run: |
+          echo "Waiting for frontend (max 60s)..."
+          timeout 60 bash -c \
+            'until curl -sf http://localhost:3000/ | grep -qi "html"; do sleep 3; done'
+          echo "Frontend ready."
+
+      # ── Playwright ────────────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      - name: Install test dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: tests
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+        working-directory: tests
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        working-directory: tests
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      # ── Artefacts ─────────────────────────────────────────────────────────
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: tests/playwright-report/
+          retention-days: 7
+
+      # ── Arrêt du stack ────────────────────────────────────────────────────
+      - name: Stop Docker stack
+        if: always()
+        run: docker compose down -v
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 4. DÉPLOIEMENT DEV
+# ══════════════════════════════════════════════════════════════════════════════
+  deploy-dev:
+    name: Deploy → Dev Server
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+
+    steps:
+      - name: SSH — git pull & docker compose up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_PRIVATE_KEY }}
+          port:     ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH_DEV }}
+            git pull origin dev
+            docker compose up -d --build
+            docker image prune -f
+
+      - name: Health check — Dev
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_PRIVATE_KEY }}
+          port:     ${{ secrets.SSH_PORT }}
+          script: |
+            sleep 20
+            curl -sf -X POST http://localhost:3095/ \
+              -H "Content-Type: application/json" \
+              -d '{"query":"{__typename}"}' | grep -q '__typename' \
+              && echo "✓ Backend dev (3095) OK" \
+              || { echo "✗ Backend dev KO"; exit 1; }
+
+            curl -sf http://localhost:3096/ | grep -qi 'html' \
+              && echo "✓ Frontend dev (3096) OK" \
+              || { echo "✗ Frontend dev KO"; exit 1; }
