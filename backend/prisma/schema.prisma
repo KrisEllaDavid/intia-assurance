@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum Statut {
+  ACTIF
+  RESILIE
+}
+
+model Agence {
+  id       String    @id @default(cuid())
+  nom      String
+  ville    String
+  employes Employe[]
+  clients  Client[]
+}
+
+model Employe {
+  id         String  @id @default(cuid())
+  email      String  @unique
+  motDePasse String
+  nom        String
+  prenom     String
+  role       Role    @default(AGENT)
+  agenceId   String?
+  agence     Agence? @relation(fields: [agenceId], references: [id])
+}
+
+model Client {
+  id         String      @id @default(cuid())
+  nom        String
+  prenom     String
+  email      String      @unique
+  motDePasse String?
+  telephone  String?
+  adresse    String?
+  agenceId   String
+  agence     Agence      @relation(fields: [agenceId], references: [id])
+  assurances Assurance[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Assurance {
+  id        String   @id @default(cuid())
+  type      String
+  prime     Float
+  dateDebut DateTime
+  dateFin   DateTime
+  statut    Statut   @default(ACTIF)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
