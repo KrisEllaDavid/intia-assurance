@@ -6,15 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "jsonwebtoken":      ["node_modules/jsonwebtoken"],
-      "bcryptjs":          ["node_modules/bcryptjs"],
-      "@apollo/server":    ["node_modules/@apollo/server"],
-      "@apollo/server/*":  ["node_modules/@apollo/server/*"],
-      "graphql":           ["node_modules/graphql"]
-    }
+    "resolveJsonModule": true
   },
   "include": ["./**/*.ts"]
 }
