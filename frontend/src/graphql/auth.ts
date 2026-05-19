@@ -13,7 +13,7 @@ export const LOGIN_CLIENT = gql`
   mutation LoginClient($email: String!, $motDePasse: String!) {
     loginClient(email: $email, motDePasse: $motDePasse) {
       token
-      client { id nom prenom email agenceId agence { id nom } }
+      client { id nom prenom email agence { id nom } }
     }
   }
 `;

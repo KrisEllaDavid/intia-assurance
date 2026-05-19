@@ -60,14 +60,13 @@ test.describe('CRUD Clients', () => {
     await page.click('a:has-text("Nouveau client")');
     await expect(page).toHaveURL(/\/clients\/new/);
 
-    await page.fill('input[placeholder=""]>>nth=0', 'TestNom');   // nom
-    await page.locator('form input').nth(0).fill('TestNom');
-    await page.locator('form input').nth(1).fill('TestPrenom');
-    await page.locator('form input[type="email"]').fill(`test_e2e_${Date.now()}@test.cm`);
+    // Sélecteurs ciblés par label — robustes quel que soit l'ordre des inputs
+    await page.locator('label:has-text("Nom") + div input, label:has-text("Nom") ~ input').first().fill('TestNom');
+    await page.locator('label:has-text("Prénom") + div input, label:has-text("Prénom") ~ input').first().fill('TestPrenom');
+    await page.locator('input[type="email"]').fill(`test_e2e_${Date.now()}@test.cm`);
 
-    // Sélectionner une agence (admin voit le dropdown)
-    const agenceSelect = page.locator('select').last();
-    await agenceSelect.selectOption({ index: 1 });
+    // Agence (admin voit le dropdown)
+    await page.locator('select').last().selectOption({ index: 1 });
 
     await page.click('button:has-text("Enregistrer")');
     await expect(page).toHaveURL(/\/clients/);
@@ -75,16 +74,14 @@ test.describe('CRUD Clients', () => {
   });
 
   test('modifier un client existant', async ({ page }) => {
-    // Cliquer sur le premier bouton Modifier de la liste
     await page.locator('a:has-text("Modifier")').first().click();
     await expect(page).toHaveURL(/\/clients\/.+\/edit/);
     await expect(page.locator('h1')).toContainText('Modifier');
   });
 
   test('supprimer un client — confirmation demandée', async ({ page }) => {
-    page.on('dialog', dialog => dialog.dismiss()); // annuler la suppression
+    page.on('dialog', dialog => dialog.dismiss());
     await page.locator('button:has-text("Supprimer")').first().click();
-    // La liste reste inchangée après annulation
     await expect(page.locator('table')).toBeVisible();
   });
 });
@@ -99,7 +96,7 @@ test.describe('CRUD Contrats', () => {
   });
 
   test('liste des contrats s\'affiche', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText("Contrats");
+    await expect(page.locator('h1')).toContainText('Contrats');
   });
 
   test('accéder au formulaire de création', async ({ page }) => {
