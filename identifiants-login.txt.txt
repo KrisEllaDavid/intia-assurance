@@ -1,0 +1,11 @@
+════════════════════════════════════════════════════════════════════════╗
+║  CREDENTIALS INITIAUX — AFFICHÉ UNE SEULE FOIS                         ║
+╠════════════════════════════════════════════════════════════════════════╣
+║  RÔLE     EMAIL                              MOT DE PASSE     STATUT  ║
+╠────────────────────────────────────────────────────────────────────────╣
+║  ADMIN    admin@votredomaine.cm              6va@Qp5YroZWbL   créé     ║
+║  AGENT    agent.douala@votredomaine.cm       M$3%9dkNuwuO8x   créé     ║
+║  AGENT    agent.yaounde@votredomaine.cm      5y!ZKByitld!GW   créé     ║
+╠════════════════════════════════════════════════════════════════════════╣
+║  ⚠  Sauvegardez ces mots de passe maintenant.                          ║
+║     Les mots de passe sont hashés en base — non récupérables.          ║
